@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gráficos Financeiros</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        transition: background 0.3s, color 0.3s;
+    }
+
+    body.light {
+        background: #fff;
+        color: #2e7d32;
+    }
+
+    body.dark {
+        background: #121212;
+        color: #e0e0e0;
+    }
+
+    h1 {
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .grafico-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .grafico-box {
+        flex: 1 1 280px;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        text-align: center;
+        background: #f9f9f9;
+        transition: background 0.3s;
+    }
+
+    body.dark .grafico-box {
+        background: #1e1e1e;
+    }
+
+    canvas {
+        max-width: 100%;
+        height: 250px;
+    }
+
+    .btn-voltar {
+        display: block;
+        margin: 30px auto 0;
+        padding: 10px 25px;
+        background: #2e7d32;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        text-decoration: none;
+        text-align: center;
+        width: 200px;
+        transition: background 0.3s;
+    }
+
+    .btn-voltar:hover {
+        background: #1b4d22;
+    }
+
+    #btn-toggle-theme {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #2e7d32;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        z-index: 1000;
+    }
+</style>
+</head>
+<body>
+    <button id="btn-toggle-theme">Alternar Tema</button>
+
+    <div class="container">
+        <h1>Controle Gráfico Financeiro</h1>
+        <div class="grafico-container">
+            <div class="grafico-box">
+                <h2>Entradas x Saídas</h2>
+                <canvas id="graficoDoughnut"></canvas>
+            </div>
+            <div class="grafico-box">
+                <h2>Entradas e Saídas Mensais</h2>
+                <canvas id="graficoBar"></canvas>
+            </div>
+            <div class="grafico-box">
+                <h2>Saldo Acumulado Mensal</h2>
+                <canvas id="graficoLine"></canvas>
+            </div>
+        </div>
+        <a href="index.html" class="btn-voltar">Voltar</a>
+    </div>
+
+<script>
+    // Definir tema inicial
+    const temaSalvo = localStorage.getItem('tema') || 'light';
+    document.body.classList.add(temaSalvo);
+
+    document.getElementById('btn-toggle-theme').addEventListener('click', () => {
+        document.body.classList.toggle('dark');
+        document.body.classList.toggle('light');
+        const novoTema = document.body.classList.contains('dark') ? 'dark' : 'light';
+        localStorage.setItem('tema', novoTema);
+        location.reload(); // Recarrega para aplicar tema nos gráficos
+    });
+
+    // Detectar se é modo escuro
+    const isDark = document.body.classList.contains('dark');
+    const textoCor = isDark ? '#e0e0e0' : '#2e7d32';
+    const gradeCor = isDark ? '#444' : '#ccc';
+
+    // Pega transacoes do localStorage
+    const transacoes = JSON.parse(localStorage.getItem('transacoes')) || [];
+
+    function getMesAno(dataStr) {
+        const d = new Date(dataStr);
+        const mes = (d.getMonth() + 1).toString().padStart(2, '0');
+        const ano = d.getFullYear();
+        return `${ano}-${mes}`;
+    }
+
+    let totalEntradas = 0;
+    let totalSaidas = 0;
+    const entradasMensais = {};
+    const saidasMensais = {};
+    let meses = new Set();
+
+    transacoes.forEach(({ valor, data }) => {
+        if (valor >= 0) {
+            totalEntradas += valor;
+            entradasMensais[getMesAno(data)] = (entradasMensais[getMesAno(data)] || 0) + valor;
+        } else {
+            totalSaidas += Math.abs(valor);
+            saidasMensais[getMesAno(data)] = (saidasMensais[getMesAno(data)] || 0) + Math.abs(valor);
+        }
+        meses.add(getMesAno(data));
+    });
+
+    meses = Array.from(meses).sort();
+    let saldoAcumulado = [];
+    let saldoAtual = 0;
+    meses.forEach(mes => {
+        const entrada = entradasMensais[mes] || 0;
+        const saida = saidasMensais[mes] || 0;
+        saldoAtual += (entrada - saida);
+        saldoAcumulado.push(saldoAtual);
+    });
+
+    // Gráfico Doughnut
+    new Chart(document.getElementById('graficoDoughnut'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Entradas', 'Saídas'],
+            datasets: [{
+                data: [totalEntradas, totalSaidas],
+                backgroundColor: ['#2e7d32', '#b71c1c'],
+                borderColor: '#fff',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: textoCor, font: { weight: 'bold' } }
+                }
+            }
+        }
+    });
+
+    // Gráfico Bar
+    new Chart(document.getElementById('graficoBar'), {
+        type: 'bar',
+        data: {
+            labels: meses,
+            datasets: [
+                {
+                    label: 'Entradas',
+                    data: meses.map(m => entradasMensais[m] || 0),
+                    backgroundColor: '#2e7d32'
+                },
+                {
+                    label: 'Saídas',
+                    data: meses.map(m => saidasMensais[m] || 0),
+                    backgroundColor: '#b71c1c'
+                }
+            ]
+        },
+        options: {
+            scales: {
+                x: {
+                    ticks: { color: textoCor },
+                    grid: { color: gradeCor }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: textoCor },
+                    grid: { color: gradeCor }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: textoCor, font: { weight: 'bold' } } }
+            }
+        }
+    });
+
+    // Gráfico Line
+    new Chart(document.getElementById('graficoLine'), {
+        type: 'line',
+        data: {
+            labels: meses,
+            datasets: [{
+                label: 'Saldo Acumulado',
+                data: saldoAcumulado,
+                fill: false,
+                borderColor: '#2e7d32',
+                tension: 0.3,
+                pointBackgroundColor: '#2e7d32'
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    ticks: { color: textoCor },
+                    grid: { color: gradeCor }
+                },
+                y: {
+                    beginAtZero: false,
+                    ticks: { color: textoCor },
+                    grid: { color: gradeCor }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: textoCor, font: { weight: 'bold' } } }
+            }
+        }
+    });
+</script>
+</body>
+</html>

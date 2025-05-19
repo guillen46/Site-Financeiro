@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financeiro Avançado</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <button id="btn-toggle-theme">Modo Escuro</button>
+    <div class="container">
+        <h1>Controle Financeiro</h1>
+        <div class="content-wrapper">
+            <div class="left-panel">
+                <form id="form-transacao">
+                    <input type="text" id="descricao" placeholder="Descrição" required>
+                    <input type="number" id="valor" placeholder="Valor (use negativo para despesas)" required>
+                    <input type="date" id="data" required>
+                    <button type="submit">Adicionar</button>
+                </form>
+                <button id="btn-ver-graficos">Ver mais gráficos</button>
+
+                <div class="resumo">
+                    <p>Entradas: R$ <span id="entradas">0.00</span></p>
+                    <p>Saídas: R$ <span id="saidas">0.00</span></p>
+                    <h2>Saldo Atual: R$ <span id="saldo">0.00</span></h2>
+                </div>
+
+                <ul id="lista-transacoes"></ul>
+            </div>       
+        </div>
+    </div>
+
+    <!-- Scripts no final para garantir que o DOM esteja carregado -->
+    <script>    const btn = document.getElementById('btn-toggle-theme');
+
+    function aplicarTema(tema) {
+        document.body.classList.remove('light', 'dark');
+        document.body.classList.add(tema);
+        btn.textContent = tema === 'light' ? 'Modo Escuro' : 'Modo Claro';
+        localStorage.setItem('tema', tema);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const temaSalvo = localStorage.getItem('tema');
+        if (temaSalvo) {
+            aplicarTema(temaSalvo);
+        } else {
+            const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            aplicarTema(darkMode ? 'dark' : 'light');
+        }
+
+        btn.addEventListener('click', () => {
+            const temaAtual = document.body.classList.contains('light') ? 'light' : 'dark';
+            const novoTema = temaAtual === 'light' ? 'dark' : 'light';
+            aplicarTema(novoTema);
+        });
+    });
+</script>
+<script src="js/script.js"></script>
+</body>
+</html>
